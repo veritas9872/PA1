@@ -23,8 +23,8 @@ def train_epoch(model, optimizer, loss_func, data_loader, device, epoch, verbose
     for idx, (images, labels) in enumerate(data_loader, start=1):
 
         # I don't know where to put this for best optimization.
-        images = images.to(device, non_blocking=True)
-        labels = labels.to(device, non_blocking=True)
+        images = images.to(device)
+        labels = labels.to(device)
 
         step_loss, preds = train_step(model, optimizer, loss_func, images, labels)
 
@@ -110,29 +110,30 @@ def train_model(model, args):
         device = torch.device('cpu')
 
     # Saving args for later use.
-    save_dict_as_json(vars(args), log_path, run_name)
+    save_dict_as_json(vars(args), log_dir=log_path, save_name=run_name)
 
-    train_dataset = torchvision.datasets.CIFAR100(root=args.data_root, train=True,
-                                                  transform=train_transform(), download=True)
-    val_dataset = torchvision.datasets.CIFAR100(root=args.data_root, train=False,
-                                                transform=val_transform(), download=True)
+    train_dataset = torchvision.datasets.CIFAR100(
+        root=args.data_root, train=True, transform=train_transform(), download=True)
+    val_dataset = torchvision.datasets.CIFAR100(
+        root=args.data_root, train=False, transform=val_transform(), download=True)
 
-    train_loader = DataLoader(train_dataset, args.batch_size, shuffle=True,
-                              num_workers=args.num_workers, pin_memory=True)
-    val_loader = DataLoader(val_dataset, args.batch_size, shuffle=False,
-                            num_workers=args.num_workers, pin_memory=True)
+    train_loader = DataLoader(
+        train_dataset, args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
+    val_loader = DataLoader(
+        val_dataset, args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
 
     # Define model, optimizer, etc.
-    model = model.to(device, non_blocking=True)
+    model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.init_lr)
     # No softmax layer at the end necessary. Just need logits.
-    loss_func = nn.CrossEntropyLoss().to(device, non_blocking=True)
+    loss_func = nn.CrossEntropyLoss(reduction='mean').to(device)
 
     # LR scheduler
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)
 
     # Create checkpoint manager
-    checkpointer = CheckpointManager(model, optimizer, args.save_best_only, ckpt_path, args.max_to_keep)
+    checkpointer = CheckpointManager(model, optimizer, mode='max', save_best_only=args.save_best_only,
+                                     ckpt_dir=ckpt_path, max_to_keep=args.max_to_keep)
 
     # Tensorboard Writer
     writer = SummaryWriter(log_dir=str(log_path))
@@ -140,9 +141,6 @@ def train_model(model, args):
     # # Save graph to Tensorboard  --> Causes far too many problems. More trouble than it's worth.
     # example_input = torch.ones(size=(1, 3, 32, 32)).to(device)
     # writer.add_graph(model=model, input_to_model=example_input)
-
-    # For recording data.
-    previous_best = 0.  # Accuracy should improve.
 
     # Training loop. Please excuse my use of 1 based indexing here.
     logger.info('Beginning Training loop')
@@ -158,7 +156,7 @@ def train_model(model, args):
         train_epoch_top1_acc = train_top1_correct.item() / len(train_loader.dataset) * 100
         train_epoch_top5_acc = train_top5_correct.item() / len(train_loader.dataset) * 100
 
-        msg = f'Epoch {epoch:03d} Training. loss: {train_epoch_loss:.4f}, '\
+        msg = f'Epoch {epoch:03d} Training. loss: {train_epoch_loss:.4e}, ' \
             f'top1 accuracy: {train_epoch_top1_acc:.2f}%, top5 accuracy: {train_epoch_top5_acc:.2f}% Time: {toc}s'
         logger.info(msg)
 
@@ -177,7 +175,7 @@ def train_model(model, args):
         val_epoch_top1_acc = val_top1_correct.item() / len(val_loader.dataset) * 100
         val_epoch_top5_acc = val_top5_correct.item() / len(val_loader.dataset) * 100
 
-        msg = f'Epoch {epoch:03d} Validation. loss: {val_epoch_loss:.4f}, ' \
+        msg = f'Epoch {epoch:03d} Validation. loss: {val_epoch_loss:.4e}, ' \
             f'top1 accuracy: {val_epoch_top1_acc:.2f}%, top5 accuracy: {val_epoch_top5_acc:.2f}%  Time: {toc}s'
         logger.info(msg)
 
@@ -188,18 +186,6 @@ def train_model(model, args):
         for idx, group in enumerate(optimizer.param_groups, start=1):
             writer.add_scalar(f'learning_rate_{idx}', group['lr'], epoch)
 
+        # Things to do after each epoch.
         scheduler.step()  # Reduces LR at the designated times. Probably does not use 1 indexing like me.
-
-        if val_epoch_top5_acc > previous_best:  # Assumes larger metric is better.
-            logger.info(f'Top 5 Validation Accuracy in Epoch {epoch} has improved from '
-                        f'{previous_best:.2f}% to {val_epoch_top5_acc:.2f}%')
-            previous_best = val_epoch_top5_acc
-            checkpointer.save(is_best=True)
-
-        else:
-            logger.info(f'Top 5 Validation Accuracy in Epoch {epoch} has not improved from the previous best epoch')
-            checkpointer.save(is_best=False)
-
-    else:
-        logger.info('Finished Training Loop')
-        del logger
+        checkpointer.save(metric=val_epoch_top5_acc, verbose=True)

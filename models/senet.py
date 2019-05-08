@@ -196,5 +196,9 @@ class SEResNet(nn.Module):
         return x
 
 
+def se_resnet34_cifar100():
+    return SEResNet(SEBasicBlock, num_layers=[3, 4, 6, 3], num_classes=100)
+
+
 def se_resnet50_cifar100():
     return SEResNet(SEBottleneck, num_layers=[3, 4, 6, 3], num_classes=100)

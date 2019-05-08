@@ -150,7 +150,7 @@ class BAMResNet(nn.Module):
         self.base_width = width_per_group
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = norm_layer(self.inplanes)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU()
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(blocks[0], 64, num_layers[0])
         self.bam1 = BAMLayer(64*blocks[0].expansion, reduction_ratio, dilation_value, use_ca, use_sa)
@@ -162,10 +162,7 @@ class BAMResNet(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * blocks[3].expansion, num_classes)
 
-        if use_ca or use_sa:  # Use BAM if either of the options is on.
-            self.use_bam = True
-        else:
-            self.use_bam = False
+        self.use_bam = (use_ca or use_sa)  # Use BAM if either of the options is on.
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -230,10 +227,13 @@ class BAMResNet(nn.Module):
         return x
 
 
-def bam_resnet50_cifar100(use_ca=True, use_sa=True):
-    blocks = Bottleneck  # Default settings in official implementation.
+def bam_resnet34_cifar100(use_ca=True, use_sa=True):
+    blocks = BasicBlock
     model = BAMResNet(blocks=blocks, num_layers=[3, 4, 6, 3], num_classes=100, use_ca=use_ca, use_sa=use_sa)
     return model
 
 
-
+def bam_resnet50_cifar100(use_ca=True, use_sa=True):
+    blocks = Bottleneck  # Default settings in official implementation.
+    model = BAMResNet(blocks=blocks, num_layers=[3, 4, 6, 3], num_classes=100, use_ca=use_ca, use_sa=use_sa)
+    return model
