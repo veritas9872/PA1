@@ -62,8 +62,8 @@ def eval_epoch(model, loss_func, val_loader, device, epoch, verbose):
     for idx, (images, labels) in enumerate(val_loader, start=1):
 
         # Not sure where this belongs.
-        images = images.to(device, non_blocking=True)
-        labels = labels.to(device, non_blocking=True)
+        images = images.to(device)
+        labels = labels.to(device)
 
         preds, top1, top5, step_loss = eval_step(model, loss_func, images, labels)
 
@@ -112,15 +112,13 @@ def train_model(model, args):
     # Saving args for later use.
     save_dict_as_json(vars(args), log_dir=log_path, save_name=run_name)
 
-    train_dataset = torchvision.datasets.CIFAR100(
-        root=args.data_root, train=True, transform=train_transform(), download=True)
-    val_dataset = torchvision.datasets.CIFAR100(
-        root=args.data_root, train=False, transform=val_transform(), download=True)
+    dataset_kwargs = dict(root=args.data_root, download=True)
+    train_dataset = torchvision.datasets.CIFAR100(train=True, transform=train_transform(), **dataset_kwargs)
+    val_dataset = torchvision.datasets.CIFAR100(train=False, transform=val_transform(), **dataset_kwargs)
 
-    train_loader = DataLoader(
-        train_dataset, args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
-    val_loader = DataLoader(
-        val_dataset, args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
+    loader_kwargs = dict(batch_size=args.batch_size, num_workers=args.num_workers, pin_memory=True)
+    train_loader = DataLoader(train_dataset, shuffle=True, **loader_kwargs)
+    val_loader = DataLoader(val_dataset, shuffle=False, **loader_kwargs)
 
     # Define model, optimizer, etc.
     model = model.to(device)
@@ -138,10 +136,6 @@ def train_model(model, args):
     # Tensorboard Writer
     writer = SummaryWriter(log_dir=str(log_path))
 
-    # # Save graph to Tensorboard  --> Causes far too many problems. More trouble than it's worth.
-    # example_input = torch.ones(size=(1, 3, 32, 32)).to(device)
-    # writer.add_graph(model=model, input_to_model=example_input)
-
     # Training loop. Please excuse my use of 1 based indexing here.
     logger.info('Beginning Training loop')
     for epoch in range(1, args.num_epochs + 1):
@@ -156,9 +150,8 @@ def train_model(model, args):
         train_epoch_top1_acc = train_top1_correct.item() / len(train_loader.dataset) * 100
         train_epoch_top5_acc = train_top5_correct.item() / len(train_loader.dataset) * 100
 
-        msg = f'Epoch {epoch:03d} Training. loss: {train_epoch_loss:.4e}, ' \
-            f'top1 accuracy: {train_epoch_top1_acc:.2f}%, top5 accuracy: {train_epoch_top5_acc:.2f}% Time: {toc}s'
-        logger.info(msg)
+        logger.info(f'Epoch {epoch:03d} Training. loss: {train_epoch_loss:.4e}, top1 accuracy: '
+                    f'{train_epoch_top1_acc:.2f}%, top5 accuracy: {train_epoch_top5_acc:.2f}% Time: {toc}s')
 
         # Writing to Tensorboard
         writer.add_scalar('train_epoch_loss', train_epoch_loss, epoch)
@@ -175,9 +168,8 @@ def train_model(model, args):
         val_epoch_top1_acc = val_top1_correct.item() / len(val_loader.dataset) * 100
         val_epoch_top5_acc = val_top5_correct.item() / len(val_loader.dataset) * 100
 
-        msg = f'Epoch {epoch:03d} Validation. loss: {val_epoch_loss:.4e}, ' \
-            f'top1 accuracy: {val_epoch_top1_acc:.2f}%, top5 accuracy: {val_epoch_top5_acc:.2f}%  Time: {toc}s'
-        logger.info(msg)
+        logger.info(f'Epoch {epoch:03d} Validation. loss: {val_epoch_loss:.4e}, top1 accuracy: '
+                    f'{val_epoch_top1_acc:.2f}%, top5 accuracy: {val_epoch_top5_acc:.2f}%  Time: {toc}s')
 
         # Writing to Tensorboard
         writer.add_scalar('val_epoch_loss', val_epoch_loss, epoch)
@@ -188,4 +180,4 @@ def train_model(model, args):
 
         # Things to do after each epoch.
         scheduler.step()  # Reduces LR at the designated times. Probably does not use 1 indexing like me.
-        checkpointer.save(metric=val_epoch_top5_acc, verbose=True)
+        checkpointer.save(metric=val_epoch_top5_acc)

@@ -1,5 +1,9 @@
+thop
+torchsummary
+matplotlib
 cv2
 numpy
 tensorboardX
 torchvision
 torch
+pillow

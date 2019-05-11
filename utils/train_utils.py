@@ -10,11 +10,11 @@ class CheckpointManager:
     Giving up on saving as HDF5 files like in Keras. Just too annoying.
     Note that the whole system is based on 1 indexing, not 0 indexing.
     """
-    def __init__(self, model, optimizer, mode='min', save_best_only=True, ckpt_dir='./checkpoints', max_to_keep=5):
+    def __init__(self, model, optimizer=None, mode='min', save_best_only=True, ckpt_dir='./checkpoints', max_to_keep=5):
 
         # Type checking.
         assert isinstance(model, nn.Module), 'Not a Pytorch Model'
-        assert isinstance(optimizer, optim.Optimizer), 'Not a Pytorch Optimizer'
+        assert optimizer is None or isinstance(optimizer, optim.Optimizer), 'Not a Pytorch Optimizer'
         assert isinstance(max_to_keep, int) and (max_to_keep >= 0), 'Not a non-negative integer'
         assert mode in ('min', 'max'), 'Mode must be either `min` or `max`'
         ckpt_path = Path(ckpt_dir)
@@ -62,7 +62,7 @@ class CheckpointManager:
         print(f'Checkpoint {self.save_counter:04d}: {save_path}')
 
         with open(file=self.record_path, mode='a') as file:
-            print(f'Latest Checkpoint: Checkpoint {self.save_counter:04d}: {save_path}', file=file)
+            print(f'Checkpoint {self.save_counter:04d}: {save_path}', file=file)
 
         self.record_dict[self.save_counter] = save_path
 
