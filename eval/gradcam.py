@@ -35,15 +35,6 @@ class CamExtractor:
                         conv_output = x  # Save the convolution output on that layer
 
             else:
-                print(1, x.shape)
-                print(type(module))
-                # print(2, module(x).shape)
-
-                if x.size(-1) == x.size(-2) == 1:
-                    x = x.squeeze()
-                    print('Hi')
-                    print(0, x.shape)
-
                 x = module(x)  # Forward
         return conv_output, x
 

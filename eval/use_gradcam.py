@@ -45,7 +45,7 @@ def make_grad_cam_imgs(model, name, data_root=None):
 def main():
     resnet = resnet34_cifar100()
     ckpt_dir = '/home/veritas/PycharmProjects/PA1/checkpoints/Trial 01  2019-05-10 00-00-27/ckpt_018.tar'
-    # load_model(resnet, ckpt_dir)
+    load_model(resnet, ckpt_dir)
     make_grad_cam_imgs(resnet, name='resnet34')
 
 

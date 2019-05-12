@@ -7,7 +7,7 @@ class CALayer(nn.Module):
     """
     Channel Attention Layer for CBAM.
     """
-    cbam = True
+    is_cbam = True
 
     def __init__(self, num_channels, reduction_ratio=16):
         super().__init__()
@@ -32,14 +32,14 @@ class CALayer(nn.Module):
         # Apparently, torch.chunk cannot be jit compiled.
         af, mf = torch.chunk(self.layer(features), chunks=2, dim=0)  # Split the results.
         channel_attention = self.sigmoid(af + mf).view(shape[0], shape[1], 1, 1).expand_as(tensor)
-        return tensor * channel_attention
+        return tensor * channel_attention  # af: average features, mf: max features
 
 
 class SALayer(nn.Module):
     """
     Spatial Attention Layer for CBAM.
     """
-    cbam = True
+    is_cbam = True
 
     def __init__(self, kernel_size=7):
         super().__init__()
@@ -60,6 +60,8 @@ class SALayer(nn.Module):
 
 
 class CBAMLayer(nn.Module):
+    is_cbam = True
+
     def __init__(self, num_channels, reduction_ratio=16, kernel_size=7, use_ca=True, use_sa=True):
         super().__init__()
 
@@ -78,6 +80,7 @@ class CBAMLayer(nn.Module):
 
 
 class CBAMBasicBlock(nn.Module):
+    is_cbam = True
     expansion = 1
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, groups=1, base_width=64, dilation=1,
@@ -125,6 +128,7 @@ class CBAMBasicBlock(nn.Module):
 
 
 class CBAMBottleneck(nn.Module):
+    is_cbam = True
     expansion = 4
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, groups=1, base_width=64, dilation=1,
@@ -175,6 +179,7 @@ class CBAMBottleneck(nn.Module):
 
 
 class CBAMResNet(nn.Module):
+    is_cbam = True
 
     def __init__(self, blocks, num_layers, num_classes=100, zero_init_residual=False, groups=1,
                  width_per_group=64, replace_stride_with_dilation=None, norm_layer=None,
@@ -265,7 +270,7 @@ class CBAMResNet(nn.Module):
         self.inplanes = planes * block.expansion
 
         for _ in range(1, num_blocks):
-            if hasattr(block, 'cbam') and hasattr(block, 'expansion'):  # CBAM block
+            if hasattr(block, 'is_cbam') and hasattr(block, 'expansion'):  # CBAM block
                 layers.append(block(self.inplanes, planes, groups=self.groups, base_width=self.base_width,
                                     dilation=self.dilation, norm_layer=norm_layer, reduction_ratio=reduction_ratio,
                                     kernel_size=kernel_size, use_ca=use_ca, use_sa=use_sa))

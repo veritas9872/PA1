@@ -3,10 +3,13 @@ from models.resnet import resnet34_cifar100, resnet50_cifar100
 from models.senet import se_resnet34_cifar100, se_resnet50_cifar100
 from models.bam import bam_resnet34_cifar100, bam_resnet50_cifar100
 from models.cbam import cbam_resnet34_cifar100, cbam_resnet50_cifar100
+from models.my_module import my_resnet34_cifar100, my_resnet50_cifar100
 
 
-models34 = [resnet34_cifar100(), se_resnet34_cifar100(), bam_resnet34_cifar100(), cbam_resnet34_cifar100()]
-models50 = [resnet50_cifar100(), se_resnet50_cifar100(), bam_resnet50_cifar100(), cbam_resnet50_cifar100()]
+models34 = [resnet34_cifar100(), se_resnet34_cifar100(), bam_resnet34_cifar100(),
+            cbam_resnet34_cifar100(), my_resnet34_cifar100(pool_stride=1)]
+models50 = [resnet50_cifar100(), se_resnet50_cifar100(), bam_resnet50_cifar100(),
+            cbam_resnet50_cifar100(), my_resnet50_cifar100(pool_stride=1)]
 
 flop_lst = list()
 param_lst = list()

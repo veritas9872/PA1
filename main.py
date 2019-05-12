@@ -8,6 +8,8 @@ from models.cbam import cbam_resnet34_cifar100, cbam_resnet50_cifar100
 
 from torchvision.models import resnet34, resnet50
 
+from models.my_module import my_resnet34_cifar100, my_resnet50_cifar100
+
 
 def models34(args):
     resnet = resnet34(num_classes=100)
@@ -20,7 +22,7 @@ def models34(args):
     # bam_no = bam_resnet34_cifar100(use_ca=False, use_sa=False)  # Same as ResNet
 
     cbam_ca_sa = cbam_resnet34_cifar100(use_ca=True, use_sa=True)
-    cbam_ca = cbam_resnet34_cifar100(use_ca=True, use_sa=False)  # Same as SENet!
+    cbam_ca = cbam_resnet34_cifar100(use_ca=True, use_sa=False)  # Not the same as SENet!
     cbam_sa = cbam_resnet34_cifar100(use_ca=False, use_sa=True)
     # cbam_no = cbam_resnet34_cifar100(use_ca=False, use_sa=False)  # Same as ResNet
 
@@ -45,7 +47,7 @@ def models50(args):
     # bam_no = bam_resnet50_cifar100(use_ca=False, use_sa=False)  # Same as ResNet
 
     cbam_ca_sa = cbam_resnet50_cifar100(use_ca=True, use_sa=True)
-    cbam_ca = cbam_resnet50_cifar100(use_ca=True, use_sa=False)  # Same as SENet
+    cbam_ca = cbam_resnet50_cifar100(use_ca=True, use_sa=False)  # Not the same as SENet!
     cbam_sa = cbam_resnet50_cifar100(use_ca=False, use_sa=True)
     # cbam_no = cbam_resnet50_cifar100(use_ca=False, use_sa=False)  # Same as ResNet
 
@@ -57,6 +59,15 @@ def models50(args):
     train_model(cbam_ca_sa, args=args)  # 6
     train_model(cbam_ca, args=args)  # 7
     train_model(cbam_sa, args=args)  # 8
+
+
+def my_model(args):
+    # Setting pool_stride=1 disables it. Necessary because the CIFAR 100 images are so small.
+    my_model34 = my_resnet34_cifar100(reduction_ratio=16, dilation_value=2, pool_stride=1, use_ca=True, use_sa=True)
+    my_model50 = my_resnet50_cifar100(reduction_ratio=16, dilation_value=2, pool_stride=1, use_ca=True, use_sa=True)
+
+    train_model(my_model34, args=args)
+    train_model(my_model50, args=args)
 
 
 if __name__ == '__main__':
@@ -78,6 +89,6 @@ if __name__ == '__main__':
 
     parser = create_arg_parser(**defaults).parse_args()
 
-    models34(parser)
-    models50(parser)
-
+    # models34(parser)
+    # models50(parser)
+    my_model(parser)

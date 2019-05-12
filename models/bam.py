@@ -21,7 +21,6 @@ class CALayer(nn.Module):
     """
     Channel Attention Layer
     """
-    bam = True
 
     def __init__(self, num_channels, reduction_ratio=16):
         super().__init__()
@@ -46,7 +45,6 @@ class SALayer(nn.Module):
     """
     Spatial Attention Layer
     """
-    bam = True
 
     def __init__(self, num_channels, reduction_ratio=16, dilation_value=4):
         super().__init__()
@@ -70,8 +68,6 @@ class SALayer(nn.Module):
 
 
 class BAMLayer(nn.Module):
-
-    bam = True
 
     def __init__(self, num_channels, reduction_ratio=16, dilation_value=4, use_ca=True, use_sa=True):
         """
@@ -107,7 +103,7 @@ class BAMLayer(nn.Module):
             attention = self.sigmoid(self.spatial_attention(tensor))
 
         else:
-            raise SyntaxError('Impossible combination')
+            raise ValueError('Impossible combination')
 
         return tensor * attention
 
@@ -215,9 +211,9 @@ class BAMResNet(nn.Module):
         x = self.layer1(x)
         x = self.bam1(x) if self.use_bam else x  # I believe that this is where BAM is supposed to be located.
         x = self.layer2(x)
-        x = self.bam2(x) if self.use_bam else x
+        x = self.bam2(x) if self.use_bam else x  # The if statement is not necessary due to redundancy in the code.
         x = self.layer3(x)
-        x = self.bam3(x) if self.use_bam else x
+        x = self.bam3(x) if self.use_bam else x  # use_bam is also redundant.
         x = self.layer4(x)
 
         x = self.avgpool(x)
